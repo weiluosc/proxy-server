@@ -1,5 +1,5 @@
 ## Deploy it on Google Cloud Run
-[![Run on Google Cloud](https://deploy.cloud.run/button.svg)](https://deploy.cloud.run?git_repo=https://github.com/juntakuo/proxy-server.git&revision=tsuhao_test)
+[![Run on Google Cloud](https://deploy.cloud.run/button.svg)](https://deploy.cloud.run?git_repo=https://github.com/juntakuo/proxy-server.git&revision=cloud_run_test)
 ## Updated front-end code:
 
 ## To Build a dockerimage:
