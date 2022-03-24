@@ -5,8 +5,8 @@ const bodyParser = require('body-parser');
 const app = express()
 
 const PATH_TO_PIXEL_BUNDLE = './static/sc-event.js'
-//app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(bodyParser.json());
 
 app.get('/scevent.min.js', (req, res) => {
   res.set('mime-type', 'application/javascript')
