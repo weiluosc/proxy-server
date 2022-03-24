@@ -45,8 +45,8 @@ app.route('/p')
   console.log(req.headers)
   headers = {
       'User-Agent': req.headers['user-agent'],
-      'X-Forwarded-For': req.headers['x-forwarded-for'],
-      'Referer': req.headers['referer']
+      'X-Forwarded-For': req.headers['x-forwarded-for']
+      // 'Referer': req.headers['referer']
   }
 
   // forward headers: 
