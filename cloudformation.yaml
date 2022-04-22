@@ -104,6 +104,7 @@ Resources:
     Properties:
       CapacityProviders:
         - FARGATE
+        - FARGATE_SPOT
   ECSService:
     Type: 'AWS::ECS::Service'
     Properties:
