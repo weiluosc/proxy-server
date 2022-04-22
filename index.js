@@ -14,7 +14,8 @@ app.get('/scevent.min.js', (req, res) => {
 app.get('/p', (req, res) => {
   console.log('Recvd')
   console.log(req.body)
-  res.end()
+  console.log(req.headers)
+  res.send('GET /p')
 })
 
 app.listen(8080)
