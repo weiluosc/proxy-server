@@ -152,4 +152,4 @@ Outputs:
     Value: !Ref ECSCluster
   ECSService:
     Description: The created service.
-    Value: !Ref ECSService
+    Value: !GetAtt ECSService.Name
