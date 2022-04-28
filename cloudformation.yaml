@@ -86,32 +86,6 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: 'sts:AssumeRole'
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    DependsOn: InternetGatewayAttachment
-    Properties: 
-      Scheme: internet-facing
-      Subnets: 
-        - !Ref EC2PublicSubnet1
-        - !Ref EC2PublicSubnet2
-      Type: application
-  TargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      HealthCheckPath: /h
-      Port: 8080
-      Protocol: HTTP
-      TargetType: ip
-      VpcId: !Ref EC2VPC
-  ListenerHTTP:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - TargetGroupArn: !Ref TargetGroup
-          Type: forward
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: 8080
-      Protocol: HTTP
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -149,16 +123,11 @@ Resources:
         - FARGATE_SPOT
   ECSService:
     Type: AWS::ECS::Service
-    DependsOn: ListenerHTTP
     Properties:
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref ECSTaskDefinition
       LaunchType: FARGATE
       DesiredCount: 1
-      LoadBalancers:
-        - ContainerName: gateway
-          ContainerPort: 8080
-          TargetGroupArn: !Ref TargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
