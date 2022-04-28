@@ -3,7 +3,7 @@ const path = require('path')
 
 const axios = require('axios').default
 
-const PIXEL_HOST = 'https://tr.snapchat.com'
+const PIXEL_HOST = 'https://tr-shadow.snapchat.com'
 const TRACKING_PATH = 'gateway/p'
 const instance = axios.create({
   baseURL: PIXEL_HOST
@@ -36,6 +36,10 @@ app.get('/p', (req, res) => {
     console.log(response.config)
     res.sendStatus(response.status)
   })
+})
+
+app.get('/h', (req, res) => {
+  res.sendStatus(200)
 })
 
 app.listen(8080)
