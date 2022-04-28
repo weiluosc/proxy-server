@@ -5,20 +5,16 @@ Parameters:
     Default: 938136620574.dkr.ecr.us-west-1.amazonaws.com/snap-pixel-gateway
 Resources:
   EC2VPC:
-    Type: 'AWS::EC2::VPC'
+    Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 172.31.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
   EC2SecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
+    Type: AWS::EC2::SecurityGroup
     Properties: 
       GroupDescription: 'VPC Security Group Allow 8080'
-      SecurityGroupEgress: 
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0
       SecurityGroupIngress: 
-        - IpProtocol: -1
         - IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
@@ -36,37 +32,37 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref EC2VPC
   EC2PublicSubnet1:
-    Type: 'AWS::EC2::Subnet'
+    Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref EC2VPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       CidrBlock: 172.31.0.0/20
       MapPublicIpOnLaunch: true
   EC2PublicSubnet2:
-    Type: 'AWS::EC2::Subnet'
+    Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref EC2VPC
       AvailabilityZone: !Select [ 1, !GetAZs  '' ]
       CidrBlock: 172.31.16.0/20
       MapPublicIpOnLaunch: true
   PublicRouteTable:
-    Type: 'AWS::EC2::RouteTable'
+    Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref EC2VPC
   DefaultPublicRoute:
-    Type: 'AWS::EC2::Route'
+    Type: AWS::EC2::Route
     DependsOn: InternetGatewayAttachment
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
   PublicSubnet1RouteTableAssociation:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref EC2PublicSubnet1
   PublicSubnet2RouteTableAssociation:
-    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref EC2PublicSubnet2
@@ -80,7 +76,7 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action: 'sts:AssumeRole'
       ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
   ECSTaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -90,8 +86,34 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: 'sts:AssumeRole'
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: InternetGatewayAttachment
+    Properties: 
+      Scheme: internet-facing
+      Subnets: 
+        - !Ref EC2PublicSubnet1
+        - !Ref EC2PublicSubnet2
+      Type: application
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckPath: /h
+      Port: 8080
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: !Ref EC2VPC
+  ListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 8080
+      Protocol: HTTP
   ECSTaskDefinition:
-    Type: 'AWS::ECS::TaskDefinition'
+    Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
         - LogConfiguration:
@@ -101,7 +123,7 @@ Resources:
               awslogs-region: us-west-1
               awslogs-stream-prefix: ecs
             LogDriver: awslogs
-          Name: cf-gateway
+          Name: gateway
           Image: !Ref DockerImage
           PortMappings:
             - ContainerPort: 8080
@@ -120,18 +142,23 @@ Resources:
         CpuArchitecture: X86_64
         OperatingSystemFamily: LINUX
   ECSCluster:
-    Type: 'AWS::ECS::Cluster'
+    Type: AWS::ECS::Cluster
     Properties:
       CapacityProviders:
         - FARGATE
         - FARGATE_SPOT
   ECSService:
-    Type: 'AWS::ECS::Service'
+    Type: AWS::ECS::Service
+    DependsOn: ListenerHTTP
     Properties:
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref ECSTaskDefinition
       LaunchType: FARGATE
       DesiredCount: 1
+      LoadBalancers:
+        - ContainerName: gateway
+          ContainerPort: 8080
+          TargetGroupArn: !Ref TargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
