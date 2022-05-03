@@ -86,6 +86,26 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: 'sts:AssumeRole'
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: auto-scaling
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:UpdateService
+                Resource: '*'
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     DependsOn: InternetGatewayAttachment
@@ -175,6 +195,45 @@ Resources:
         MinimumHealthyPercent: 100
       DeploymentController:
         Type: ECS
+  AutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: 1
+      MaxCapacity: 100
+      ResourceId: !Join
+        - '/'
+        - - service
+          - !Ref ECSCluster
+          - !GetAtt ECSService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+      RoleARN: !GetAtt AutoScalingRole.Arn
+  ScaleUpPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${ECSService}ScaleUpPolicy'
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - MetricIntervalLowerBound: 0
+            ScalingAdjustment: 1
+  ScaleDownPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${ECSService}ScaleDownPolicy'
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - MetricIntervalUpperBound: 0
+            ScalingAdjustment: -1
 Outputs:
   ClusterName:
     Description: The created cluster.
